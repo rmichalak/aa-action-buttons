@@ -50,7 +50,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   [[ -z "$line" ]] && continue
   if [[ ! "$line" =~ ^[A-Za-z0-9._%-]+:[0-9]+$ ]]; then
     echo "Invalid .adb-devices entry: $line" >&2
-    echo "Expected host:port, for example 192.168.0.70:34567" >&2
+    echo "Expected host:port, for example 192.168.0.2:34567" >&2
     finish 1
   fi
   port="${line##*:}"

@@ -25,9 +25,11 @@ Local debug (any media-browser caller allowed — DHU / tooling only):
 Wireless reconnect from the container: pair once with `adb pair` ([docs](https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi)), then put the phone's Wireless debugging **IP:port** in gitignored `.adb-devices` (see `.adb-devices.example`) and run `./gradlew adbConnect`.
 
 ```shell
-adb install -r app/build/outputs/apk/release/app-release.apk
+./gradlew adbInstall
 adb logcat -s AaActionButtons
 ```
+
+`adbInstall` installs the release APK on every connected device and reconnects `.adb-devices` first when that file exists. `scripts/adb-install.sh [apk]` installs an existing file without rebuilding.
 
 ## Scope
 

@@ -49,7 +49,7 @@ app/src/main/res/xml/automotive_app_desc.xml   uses name="media"
 
 **Host vs container:** Android Studio / USB `adb` on the host. Devcontainer = Gradle + SDK only (no Studio). Docker Desktop on Mac cannot USB-passthrough the phone — wireless `adb` or host-side install.
 
-Wireless: pair once with `adb pair` ([docs](https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi)). Reconnect with `./gradlew adbConnect` (gitignored `.adb-devices`; example `.adb-devices.example`). Devcontainer runs `scripts/adb-connect.sh --if-configured` on start.
+Wireless: pair once with `adb pair` ([docs](https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi)). Reconnect with `./gradlew adbConnect` (gitignored `.adb-devices`; example `.adb-devices.example`). Devcontainer runs `scripts/adb-connect.sh --if-configured` on start. `./gradlew adbInstall` builds the release APK, reconnects `.adb-devices` when that file exists, and installs on every device in state `device`.
 
 CI uploads **release** APK (`BuildConfig.DEBUG == false` → `onGetRoot` allowlist). Do not publish debug APK as the default artifact.
 
