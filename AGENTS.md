@@ -35,7 +35,7 @@ app/src/main/kotlin/dev/robertmichalak/aaactionbuttons/
   model/Action.kt        Tasker | Http | IntentAction
   model/ButtonConfig.kt
 app/src/main/res/xml/automotive_app_desc.xml   uses name="media"
-.devcontainer/           JDK 21 + Android SDK image for builds; GitHub CLI via the github-cli feature
+.devcontainer/           JDK 21 + Android SDK image for the host CPU; GitHub CLI via the github-cli feature. arm64 swaps in pinned AOSP build-tools (Commit451, 36.0.0) and Ubuntu adb, and skips DHU.
 ```
 
 ## Build / run
@@ -61,7 +61,7 @@ CI uploads **release** APK (`BuildConfig.DEBUG == false` → `onGetRoot` allowli
 - Do **not** document or automate Play-installer spoofing as a supported path.
 - Car App Library / templated UI needs a trusted install; out of default scope.
 - Never claim car success from compile-only verification.
-- DHU needs a display; `desktop-head-unit --usb` needs USB passthrough (not available in Mac Docker Desktop).
+- DHU is installed only in the amd64 image (Google publishes that binary for linux/amd64). It needs a display; `desktop-head-unit --usb` needs USB passthrough (not available in Mac Docker Desktop).
 
 ## Conventions
 

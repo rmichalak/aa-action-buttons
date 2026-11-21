@@ -30,6 +30,8 @@ Car App Library / templated UI experiments need a Play-trusted install and are o
 | **Host** (macOS / Linux / Windows) | Android Studio (optional), USB `adb`, pairing phones over USB |
 | **Devcontainer** (this repo’s Docker image) | JDK 21, Android SDK, GitHub CLI, `./gradlew` builds — **no Android Studio** |
 
+The image is built for the host CPU, so an Apple Silicon Mac gets a native arm64 container. Google publishes Linux `aapt2`, `aidl`, `zipalign`, and `split-select` for amd64 only. The arm64 image replaces those four with pinned AOSP builds of build-tools 36.0.0 from [android-arm-build-tools](https://github.com/Commit451/android-arm-build-tools) and uses Ubuntu's `adb`. AGP 9 is pointed at that `aapt2` via `android.aapt2FromMavenOverride` in the container user's Gradle home.
+
 Docker Desktop on a Mac **does not** pass phone USB into the container, and you generally **cannot** turn that on. Prefer:
 
 - **Wireless debugging** so `adb` inside the container can reach the phone, or
@@ -108,7 +110,7 @@ Then trigger the task from Android Auto.
 
 See [Test using the Desktop Head Unit](https://developer.android.com/training/cars/testing/dhu).
 
-This image installs the Linux DHU at `/opt/android-sdk/extras/google/auto/desktop-head-unit`. The DHU needs a **display** (X11/Wayland in the environment).
+Google publishes the Linux DHU for amd64 only, so the arm64 image does not include it. On a Mac, run the DHU from Android Studio on the host. An amd64 image installs it at `/opt/android-sdk/extras/google/auto/desktop-head-unit`. The DHU needs a **display** (X11/Wayland in the environment).
 
 1. On the phone, in Android Auto developer settings, **Start head unit server**.
 2. Forward the port (wireless or host USB `adb`):

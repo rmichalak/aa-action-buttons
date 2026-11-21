@@ -1,8 +1,7 @@
 {
   "name": "AA Action Buttons",
   "build": {
-    "dockerfile": "Dockerfile",
-    "options": ["--platform=linux/amd64"]
+    "dockerfile": "Dockerfile"
   },
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}

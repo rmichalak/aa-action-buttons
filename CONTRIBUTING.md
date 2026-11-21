@@ -5,7 +5,7 @@ Thanks for helping with AA Action Buttons.
 ## Host vs container
 
 - **Host:** Android Studio (optional), USB `adb`, pairing.
-- **Devcontainer:** Gradle + SDK builds only — no Android Studio. Docker Desktop on Mac does not pass USB to the container; use wireless debugging or install APKs with host `adb`.
+- **Devcontainer:** Gradle + SDK builds only — no Android Studio. The image matches the host CPU. On arm64, build-tools natives come from pinned AOSP builds and the Desktop Head Unit is omitted (Google ships that binary for amd64). Docker Desktop on Mac does not pass USB to the container; use wireless debugging or install APKs with host `adb`.
 
 ## Build
 
