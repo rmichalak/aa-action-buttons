@@ -35,7 +35,7 @@ app/src/main/kotlin/dev/robertmichalak/aaactionbuttons/
   model/Action.kt        Tasker | Http | IntentAction
   model/ButtonConfig.kt
 app/src/main/res/xml/automotive_app_desc.xml   uses name="media"
-.devcontainer/           JDK 21 + Android SDK image for builds
+.devcontainer/           JDK 21 + Android SDK image for builds; GitHub CLI via the github-cli feature
 ```
 
 ## Build / run

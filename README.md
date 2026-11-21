@@ -28,7 +28,7 @@ Car App Library / templated UI experiments need a Play-trusted install and are o
 | Where | What it’s for |
 | --- | --- |
 | **Host** (macOS / Linux / Windows) | Android Studio (optional), USB `adb`, pairing phones over USB |
-| **Devcontainer** (this repo’s Docker image) | JDK 21, Android SDK, `./gradlew` builds — **no Android Studio** |
+| **Devcontainer** (this repo’s Docker image) | JDK 21, Android SDK, GitHub CLI, `./gradlew` builds — **no Android Studio** |
 
 Docker Desktop on a Mac **does not** pass phone USB into the container, and you generally **cannot** turn that on. Prefer:
 

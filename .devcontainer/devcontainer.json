@@ -4,6 +4,9 @@
     "dockerfile": "Dockerfile",
     "options": ["--platform=linux/amd64"]
   },
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
   "remoteUser": "vscode",
   "containerEnv": {
     "ANDROID_HOME": "/opt/android-sdk",
