@@ -94,7 +94,7 @@ Checks (`.github/workflows/checks.yml`) runs on pull requests and pushes to `mai
 3. Enable **Unknown sources** (above).
 4. On the car / DHU, open the app under **media** apps and tap a button.
 
-Debug: in-app log, or `adb logcat -s AaActionButtons`.
+Debug builds show an in-app log. `adb logcat -s AaActionButtons` works for either build.
 
 ## Tasker
 

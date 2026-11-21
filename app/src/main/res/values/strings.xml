@@ -10,7 +10,16 @@
     <string name="aa_custom_action_missing_id">Missing button id</string>
     <string name="aa_use_run_action_title">Use the Run action</string>
     <string name="aa_use_run_action_subtitle">Go back and tap Run next to the button</string>
-    <string name="config_intro">Buttons appear as a media list in Android Auto (sideload / Unknown sources). Tap one on the car to run its action on the phone. Brief player Loading/Failed is normal.</string>
+    <string name="config_intro">These buttons show up in Android Auto with your other media apps.</string>
+    <string name="setup_guide">Setup guide</string>
+    <string name="setup_step_title">Setup %1$d of %2$d</string>
+    <string name="setup_next">Next</string>
+    <string name="setup_back">Back</string>
+    <string name="setup_done">Done</string>
+    <string name="setup_step_developer">Turn on Android Auto developer mode.\n\nOpen Android Auto settings. On Android 10 and later: phone Settings → Apps → Android Auto → Additional settings in the app.\n\nScroll to About and tap the version about 10 times. Confirm Allow development settings.</string>
+    <string name="setup_step_sources">Allow this app in Android Auto.\n\nIn Android Auto, open the menu → Developer settings → turn on Unknown sources.\n\nRestart Android Auto if this app does not appear. It is listed with the media apps.</string>
+    <string name="setup_step_tasker">Let this app run Tasker tasks.\n\nIn Tasker: Prefs → Misc → Allow External Access.\n\nAllow the permission prompt in this app. If Android does not show one, tap Fix Tasker permission.</string>
+    <string name="setup_step_car">Use it in the car.\n\nOpen this app under media apps and tap a button. The action runs on the phone.\n\nA brief Loading / Failed to load screen is normal.</string>
     <string name="add_button">Add</string>
     <string name="import_from_tasker">From Tasker</string>
     <string name="fix_tasker_permission">Fix Tasker permission</string>

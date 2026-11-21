@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/config_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="16dp">
+    android:orientation="vertical">
 
     <TextView
         android:layout_width="match_parent"
@@ -33,12 +33,6 @@
             android:text="@string/import_from_tasker" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/fix_tasker_permission"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/fix_tasker_permission" />
-
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -60,58 +54,66 @@
             android:visibility="gone" />
     </FrameLayout>
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/debug_log_title"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:textStyle="bold" />
-
     <LinearLayout
+        android:id="@+id/debug_log_section"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/debug_refresh"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/debug_refresh" />
-
-        <Button
-            android:id="@+id/debug_copy"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:layout_weight="1"
-            android:text="@string/debug_copy" />
-
-        <Button
-            android:id="@+id/debug_clear"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="4dp"
-            android:layout_weight="1"
-            android:text="@string/debug_clear" />
-    </LinearLayout>
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="160dp"
-        android:layout_marginTop="4dp"
-        android:background="#11000000"
-        android:fillViewport="true">
+        android:orientation="vertical"
+        android:visibility="gone">
 
         <TextView
-            android:id="@+id/debug_log"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:padding="8dp"
-            android:text="@string/debug_log_empty"
-            android:textIsSelectable="true"
-            android:textSize="11sp" />
-    </ScrollView>
+            android:layout_marginTop="8dp"
+            android:text="@string/debug_log_title"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/debug_refresh"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/debug_refresh" />
+
+            <Button
+                android:id="@+id/debug_copy"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:text="@string/debug_copy" />
+
+            <Button
+                android:id="@+id/debug_clear"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:layout_weight="1"
+                android:text="@string/debug_clear" />
+        </LinearLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:layout_marginTop="4dp"
+            android:background="#11000000"
+            android:fillViewport="true">
+
+            <TextView
+                android:id="@+id/debug_log"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:padding="8dp"
+                android:text="@string/debug_log_empty"
+                android:textIsSelectable="true"
+                android:textSize="11sp" />
+        </ScrollView>
+    </LinearLayout>
 </LinearLayout>

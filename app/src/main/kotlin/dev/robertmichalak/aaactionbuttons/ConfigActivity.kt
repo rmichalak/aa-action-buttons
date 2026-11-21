@@ -6,14 +6,19 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ListView
+import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -32,6 +37,11 @@ class ConfigActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_config)
+        actionBar?.apply {
+            setDisplayHomeAsUpEnabled(true)
+            setHomeAsUpIndicator(R.drawable.ic_menu)
+        }
+        applyContentInsets()
 
         DebugLog.init(this)
         store = ButtonStore(this)
@@ -39,7 +49,6 @@ class ConfigActivity : Activity() {
 
         listView = findViewById(R.id.button_list)
         emptyView = findViewById(R.id.empty_view)
-        debugLogView = findViewById(R.id.debug_log)
         adapter = ButtonListAdapter()
         listView.adapter = adapter
         listView.emptyView = emptyView
@@ -56,21 +65,22 @@ class ConfigActivity : Activity() {
             showTaskerImport()
         }
 
-        findViewById<Button>(R.id.debug_refresh).setOnClickListener { refreshDebugLog() }
-        findViewById<Button>(R.id.debug_clear).setOnClickListener {
-            DebugLog.clear(this)
-            refreshDebugLog()
+        val debugSection = findViewById<View>(R.id.debug_log_section)
+        if (BuildConfig.DEBUG) {
+            debugSection.visibility = View.VISIBLE
+            debugLogView = findViewById(R.id.debug_log)
+            findViewById<Button>(R.id.debug_refresh).setOnClickListener { refreshDebugLog() }
+            findViewById<Button>(R.id.debug_clear).setOnClickListener {
+                DebugLog.clear(this)
+                refreshDebugLog()
+            }
+            findViewById<Button>(R.id.debug_copy).setOnClickListener {
+                val text = DebugLog.snapshot().ifBlank { getString(R.string.debug_log_empty) }
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("AA Action Buttons debug", text))
+                Toast.makeText(this, R.string.debug_copied, Toast.LENGTH_SHORT).show()
+            }
         }
-        findViewById<Button>(R.id.debug_copy).setOnClickListener {
-            val text = DebugLog.snapshot().ifBlank { getString(R.string.debug_log_empty) }
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-            clipboard.setPrimaryClip(ClipData.newPlainText("AA Action Buttons debug", text))
-            Toast.makeText(this, R.string.debug_copied, Toast.LENGTH_SHORT).show()
-        }
-        findViewById<Button>(R.id.fix_tasker_permission).setOnClickListener {
-            fixTaskerPermission()
-        }
-
         listView.setOnItemClickListener { _, _, position, _ ->
             showEditor(buttons[position])
         }
@@ -78,6 +88,16 @@ class ConfigActivity : Activity() {
         logPermissionState()
         refreshList()
         refreshDebugLog()
+        if (savedInstanceState == null && maybeShowSetupGuide()) return
+        maybeRequestTaskerPermission()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            showMainMenu()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     override fun onResume() {
@@ -112,15 +132,114 @@ class ConfigActivity : Activity() {
         DebugLog.persist(this)
     }
 
+    private fun maybeShowSetupGuide(): Boolean {
+        val prefs = getPreferences(MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_SETUP_GUIDE_SHOWN, false)) return false
+        prefs.edit().putBoolean(KEY_SETUP_GUIDE_SHOWN, true).apply()
+        showSetupGuide(onDismiss = { maybeRequestTaskerPermission() })
+        return true
+    }
+
+    private fun maybeRequestTaskerPermission() {
+        if (checkSelfPermission(TASKER_RUN_PERMISSION) == PackageManager.PERMISSION_GRANTED) return
+        val prefs = getPreferences(MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_TASKER_PERMISSION_REQUESTED, false)) return
+        prefs.edit().putBoolean(KEY_TASKER_PERMISSION_REQUESTED, true).apply()
+        DebugLog.i("Requesting $TASKER_RUN_PERMISSION on first launch")
+        DebugLog.persist(this)
+        requestPermissions(arrayOf(TASKER_RUN_PERMISSION), REQUEST_TASKER_PERMISSION)
+    }
+
     private fun fixTaskerPermission() {
         val granted = checkSelfPermission(TASKER_RUN_PERMISSION) == PackageManager.PERMISSION_GRANTED
         if (granted) {
             Toast.makeText(this, R.string.tasker_permission_granted, Toast.LENGTH_SHORT).show()
             return
         }
+        getPreferences(MODE_PRIVATE).edit().putBoolean(KEY_TASKER_PERMISSION_REQUESTED, true).apply()
         DebugLog.i("Requesting $TASKER_RUN_PERMISSION at runtime")
         DebugLog.persist(this)
         requestPermissions(arrayOf(TASKER_RUN_PERMISSION), REQUEST_TASKER_PERMISSION)
+        showTaskerPermissionHelp()
+    }
+
+    private fun showMainMenu() {
+        val anchor = window.decorView.findViewById<View>(android.R.id.home)
+        if (anchor == null) {
+            AlertDialog.Builder(this)
+                .setItems(
+                    arrayOf(
+                        getString(R.string.setup_guide),
+                        getString(R.string.fix_tasker_permission),
+                    ),
+                ) { _, which ->
+                    if (which == 0) showSetupGuide() else fixTaskerPermission()
+                }
+                .show()
+            return
+        }
+        PopupMenu(this, anchor).apply {
+            menuInflater.inflate(R.menu.main_menu, menu)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.menu_setup_guide -> showSetupGuide()
+                    R.id.menu_fix_tasker_permission -> fixTaskerPermission()
+                    else -> return@setOnMenuItemClickListener false
+                }
+                true
+            }
+            show()
+        }
+    }
+
+    private fun showSetupGuide(onDismiss: (() -> Unit)? = null) {
+        val steps = listOf(
+            getString(R.string.setup_step_developer),
+            getString(R.string.setup_step_sources),
+            getString(R.string.setup_step_tasker),
+            getString(R.string.setup_step_car),
+        )
+        var step = 0
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.setup_step_title, 1, steps.size))
+            .setMessage(steps[0])
+            .setPositiveButton(R.string.setup_next, null)
+            .setNegativeButton(R.string.setup_back, null)
+            .setNeutralButton(android.R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            val messageView = dialog.findViewById<TextView>(android.R.id.message)
+            fun render() {
+                dialog.setTitle(getString(R.string.setup_step_title, step + 1, steps.size))
+                messageView?.text = steps[step]
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setText(
+                    if (step == steps.lastIndex) R.string.setup_done else R.string.setup_next,
+                )
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled = step > 0
+            }
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if (step == steps.lastIndex) {
+                    dialog.dismiss()
+                } else {
+                    step += 1
+                    render()
+                }
+            }
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener {
+                if (step > 0) {
+                    step -= 1
+                    render()
+                }
+            }
+            render()
+        }
+        if (onDismiss != null) {
+            dialog.setOnDismissListener { onDismiss() }
+        }
+        dialog.show()
+    }
+
+    private fun showTaskerPermissionHelp() {
         AlertDialog.Builder(this)
             .setTitle(R.string.tasker_permission_title)
             .setMessage(getString(R.string.tasker_permission_help, packageName))
@@ -132,7 +251,44 @@ class ConfigActivity : Activity() {
         adapter.notifyDataSetChanged()
     }
 
+    private fun applyContentInsets() {
+        val root = findViewById<View>(R.id.config_root)
+        val base = (16 * resources.displayMetrics.density).toInt()
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            val left: Int
+            val top: Int
+            val right: Int
+            val bottom: Int
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val bars = insets.getInsets(
+                    WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout(),
+                )
+                left = bars.left
+                top = bars.top
+                right = bars.right
+                bottom = bars.bottom
+            } else {
+                left = insets.systemWindowInsetLeft
+                top = insets.systemWindowInsetTop
+                right = insets.systemWindowInsetRight
+                bottom = insets.systemWindowInsetBottom
+            }
+            // Target SDK 36 draws edge-to-edge, so the action bar sits on the content.
+            val header = if (Build.VERSION.SDK_INT >= 35) actionBarHeight() else 0
+            view.setPadding(base + left, base + top + header, base + right, base + bottom)
+            insets
+        }
+        root.requestApplyInsets()
+    }
+
+    private fun actionBarHeight(): Int {
+        val value = TypedValue()
+        if (!theme.resolveAttribute(android.R.attr.actionBarSize, value, true)) return 0
+        return TypedValue.complexToDimensionPixelSize(value.data, resources.displayMetrics)
+    }
+
     private fun refreshDebugLog() {
+        if (!::debugLogView.isInitialized) return
         val header = "build=${BuildConfig.VERSION_NAME}\n${AaDiagnostics.summary(this)}\n---\n"
         val text = DebugLog.snapshot()
         debugLogView.text = header + text.ifBlank { getString(R.string.debug_log_empty) }
@@ -411,5 +567,7 @@ class ConfigActivity : Activity() {
         private const val REQUEST_TASKER_PERMISSION = 1001
         private const val TASKER_RUN_PERMISSION =
             "net.dinglisch.android.tasker.PERMISSION_RUN_TASKS"
+        private const val KEY_TASKER_PERMISSION_REQUESTED = "tasker_permission_requested"
+        private const val KEY_SETUP_GUIDE_SHOWN = "setup_guide_shown"
     }
 }
