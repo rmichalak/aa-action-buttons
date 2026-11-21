@@ -2,15 +2,6 @@ name: Release
 
 on:
   workflow_dispatch:
-    inputs:
-      version_name:
-        description: "Version name (semver x.y.z, for example 0.5.0)"
-        required: true
-        type: string
-      version_code:
-        description: "Android versionCode. Higher than version.properties for a new version; the current value tags the commit already on main."
-        required: true
-        type: number
 
 concurrency:
   group: release
@@ -23,10 +14,23 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Require release push token
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          if [ -z "${RELEASE_TOKEN}" ]; then
+            echo "Missing RELEASE_TOKEN."
+            echo "Create a fine-grained personal access token for this repository with Contents: Read and write."
+            echo "Add it as the RELEASE_TOKEN Actions secret."
+            echo "The release push runs as that token's owner. A personal account cannot exempt GitHub Actions from a ruleset."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Require main branch
         run: |
@@ -35,11 +39,9 @@ jobs:
             exit 1
           fi
 
-      - name: Validate release request
+      - name: Validate version on main
         id: validate
         env:
-          VERSION_NAME: ${{ inputs.version_name }}
-          VERSION_CODE: ${{ inputs.version_code }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -52,33 +54,28 @@ jobs:
           import subprocess
           import sys
 
-          version_name = os.environ.get("VERSION_NAME", "").strip()
-          version_code_raw = os.environ.get("VERSION_CODE", "").strip()
           keystore_b64 = os.environ.get("ANDROID_KEYSTORE_BASE64", "")
           keystore_password = os.environ.get("ANDROID_KEYSTORE_PASSWORD", "")
           key_alias = os.environ.get("ANDROID_KEY_ALIAS", "")
           key_password = os.environ.get("ANDROID_KEY_PASSWORD", "")
+          version_name_pattern = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
+          tag_pattern = re.compile(r"v[0-9]+\.[0-9]+\.[0-9]+")
 
-          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version_name):
-              print(
-                  f"version_name must match x.y.z with no v prefix or prerelease (got {version_name!r}).",
-                  file=sys.stderr,
-              )
+          def fail(message):
+              print(message, file=sys.stderr)
               sys.exit(1)
 
-          if not re.fullmatch(r"[0-9]+", version_code_raw):
-              print(
-                  f"version_code must be an integer (got {version_code_raw!r}).",
-                  file=sys.stderr,
-              )
-              sys.exit(1)
-          version_code = int(version_code_raw)
+          def run(*args, check=True):
+              result = subprocess.run(args, check=False, capture_output=True, text=True)
+              if check and result.returncode != 0:
+                  fail(result.stderr.strip() or result.stdout.strip() or f"{args[0]} failed.")
+              return result
 
-          current_code = None
-          current_name = None
-          try:
-              with open("version.properties", encoding="utf-8") as fh:
-                  for raw in fh:
+          def read_version_text(text, label):
+              code = None
+              name = None
+              try:
+                  for raw in text.splitlines():
                       line = raw.strip()
                       if not line or line.startswith("#") or "=" not in line:
                           continue
@@ -86,144 +83,122 @@ jobs:
                       key = key.strip()
                       value = value.strip()
                       if key == "versionCode":
-                          current_code = int(value)
+                          code = int(value)
                       elif key == "versionName":
-                          current_name = value
-          except OSError as exc:
-              print(f"Could not read version.properties: {exc}", file=sys.stderr)
-              sys.exit(1)
-          except ValueError as exc:
-              print(f"version.properties has an invalid versionCode: {exc}", file=sys.stderr)
-              sys.exit(1)
+                          name = value
+              except ValueError as exc:
+                  fail(f"{label} has an invalid versionCode: {exc}")
+              if code is None or name is None:
+                  fail(f"{label} must define versionCode and versionName.")
+              if not version_name_pattern.fullmatch(name):
+                  fail(f"{label} versionName must match x.y.z (got {name!r}).")
+              return code, name
 
-          if current_code is None or current_name is None:
-              print(
-                  "version.properties must define versionCode and versionName.",
-                  file=sys.stderr,
-              )
-              sys.exit(1)
+          def read_version_file():
+              try:
+                  with open("version.properties", encoding="utf-8") as fh:
+                      text = fh.read()
+              except OSError as exc:
+                  fail(f"Could not read version.properties: {exc}")
+              return read_version_text(text, "version.properties")
 
-          tag = f"v{version_name}"
-          listed = subprocess.run(
-              ["git", "ls-remote", "--tags", "origin", f"refs/tags/{tag}"],
-              check=False,
-              capture_output=True,
-              text=True,
-          )
-          if listed.returncode != 0:
-              print(listed.stderr.strip() or "git ls-remote failed.", file=sys.stderr)
-              sys.exit(1)
-          tag_exists = bool(listed.stdout.strip())
+          def ensure_tag(tag):
+              have = run("git", "rev-parse", "--verify", "--quiet", f"refs/tags/{tag}", check=False)
+              if have.returncode == 0:
+                  return
+              run("git", "fetch", "origin", f"refs/tags/{tag}:refs/tags/{tag}")
 
+          def read_version_at(tag):
+              ensure_tag(tag)
+              shown = run("git", "show", f"{tag}:version.properties")
+              return read_version_text(shown.stdout, f"Tag {tag}")
+
+          current_code, current_name = read_version_file()
+          tag = f"v{current_name}"
+          major, minor, patch = (int(part) for part in current_name.split("."))
+          next_name = f"{major}.{minor}.{patch + 1}"
+          next_code = current_code + 1
+          next_tag = f"v{next_name}"
+
+          listed = run("git", "ls-remote", "--tags", "origin")
+          remote_tags = set()
+          highest_code = None
+          highest_tag = None
+          for line in listed.stdout.splitlines():
+              if "\t" not in line:
+                  continue
+              ref = line.split("\t", 1)[1].strip()
+              if not ref.startswith("refs/tags/") or ref.endswith("^{}"):
+                  continue
+              name = ref.removeprefix("refs/tags/")
+              if not tag_pattern.fullmatch(name):
+                  continue
+              remote_tags.add(name)
+              code, _ = read_version_at(name)
+              if highest_code is None or code > highest_code:
+                  highest_code = code
+                  highest_tag = name
+
+          if next_tag in remote_tags:
+              fail(f"Refusing to bump to {next_name}: tag {next_tag} already exists.")
+
+          tag_exists = tag in remote_tags
           release_exists = False
           if tag_exists:
-              view = subprocess.run(
-                  ["gh", "release", "view", tag],
-                  check=False,
-                  capture_output=True,
-                  text=True,
-              )
+              tag_code, tag_name = read_version_at(tag)
+              if tag_code != current_code or tag_name != current_name:
+                  fail(
+                      f"Tag {tag} does not match version.properties "
+                      f"({current_name} / {current_code})."
+                  )
+              view = run("gh", "release", "view", tag, check=False)
               if view.returncode == 0:
                   release_exists = True
               else:
                   details = f"{view.stdout}\n{view.stderr}".lower()
                   if "not found" not in details:
-                      print(view.stderr.strip() or "gh release view failed.", file=sys.stderr)
-                      sys.exit(1)
-
-          if tag_exists and release_exists:
-              print(f"GitHub Release {tag} is already published.", file=sys.stderr)
-              sys.exit(1)
-
-          if tag_exists:
-              mode = "retry"
-              mismatches = []
-              if current_name != version_name:
-                  mismatches.append(
-                      f"versionName is {current_name}, expected {version_name}"
-                  )
-              if current_code != version_code:
-                  mismatches.append(
-                      f"versionCode is {current_code}, expected {version_code}"
-                  )
-              if mismatches:
-                  print(
-                      f"Tag {tag} exists without a GitHub Release, but version.properties does not match the request: "
-                      + "; ".join(mismatches)
-                      + ".",
-                      file=sys.stderr,
-                  )
-                  sys.exit(1)
-          elif current_name == version_name and current_code == version_code:
-              # Version bump is already on main (or this is the first publish of the current version).
-              mode = "publish"
+                      fail(view.stderr.strip() or "gh release view failed.")
+              mode = "bump" if release_exists else "retry"
           else:
-              mode = "normal"
-              problems = []
-              if version_code <= current_code:
-                  problems.append(
-                      f"version_code {version_code} must be strictly greater than current versionCode {current_code}"
+              if highest_code is not None and current_code <= highest_code:
+                  fail(
+                      f"versionCode {current_code} must be greater than {highest_code} "
+                      f"already released on {highest_tag}."
                   )
-              if version_name == current_name:
-                  problems.append(
-                      f"version_name {version_name} must differ from current versionName {current_name}"
-                  )
-              if problems:
-                  print("; ".join(problems) + ".", file=sys.stderr)
-                  sys.exit(1)
+              mode = "release"
 
-          missing_secrets = [
-              name
-              for name, value in (
-                  ("ANDROID_KEYSTORE_BASE64", keystore_b64),
-                  ("ANDROID_KEYSTORE_PASSWORD", keystore_password),
-                  ("ANDROID_KEY_ALIAS", key_alias),
-                  ("ANDROID_KEY_PASSWORD", key_password),
-              )
-              if not value.strip()
-          ]
-          if missing_secrets:
-              print(
-                  "Missing release signing secrets: "
-                  + ", ".join(missing_secrets)
-                  + ". Refusing to sign a public release with the debug key.",
-                  file=sys.stderr,
-              )
-              sys.exit(1)
+          if mode != "bump":
+              missing_secrets = [
+                  name
+                  for name, value in (
+                      ("ANDROID_KEYSTORE_BASE64", keystore_b64),
+                      ("ANDROID_KEYSTORE_PASSWORD", keystore_password),
+                      ("ANDROID_KEY_ALIAS", key_alias),
+                      ("ANDROID_KEY_PASSWORD", key_password),
+                  )
+                  if not value.strip()
+              ]
+              if missing_secrets:
+                  fail(
+                      "Missing release signing secrets: "
+                      + ", ".join(missing_secrets)
+                      + ". Refusing to sign a public release with the debug key."
+                  )
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write(f"mode={mode}\n")
-              out.write(f"version_name={version_name}\n")
-              out.write(f"version_code={version_code}\n")
-          print(f"Release mode: {mode} ({tag}, versionCode {version_code}).")
-          PY
-
-      - name: Write version.properties
-        if: steps.validate.outputs.mode == 'normal'
-        env:
-          VERSION_NAME: ${{ steps.validate.outputs.version_name }}
-          VERSION_CODE: ${{ steps.validate.outputs.version_code }}
-        run: |
-          python3 - << 'PY'
-          import os
-          import re
-          import sys
-
-          version_name = os.environ["VERSION_NAME"].strip()
-          version_code = os.environ["VERSION_CODE"].strip()
-          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version_name):
-              print(f"Refusing to write version_name {version_name!r}.", file=sys.stderr)
-              sys.exit(1)
-          if not re.fullmatch(r"[0-9]+", version_code):
-              print(f"Refusing to write version_code {version_code!r}.", file=sys.stderr)
-              sys.exit(1)
-          with open("version.properties", "w", encoding="utf-8") as fh:
-              fh.write("# versionCode must increase on every Android release. versionName is the user-facing semver.\n")
-              fh.write(f"versionCode={version_code}\n")
-              fh.write(f"versionName={version_name}\n")
+              out.write(f"version_name={current_name}\n")
+              out.write(f"version_code={current_code}\n")
+              out.write(f"next_name={next_name}\n")
+              out.write(f"next_code={next_code}\n")
+          print(
+              f"Release mode: {mode} ({tag}, versionCode {current_code}). "
+              f"Next main: {next_name} / {next_code}."
+          )
           PY
 
       - name: Install release signing key
+        if: steps.validate.outputs.mode != 'bump'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -240,6 +215,7 @@ jobs:
           echo "ANDROID_KEYSTORE_FILE=$keystore" >> "$GITHUB_ENV"
 
       - name: Set up JDK 21
+        if: steps.validate.outputs.mode != 'bump'
         uses: actions/setup-java@v6
         with:
           distribution: temurin
@@ -247,43 +223,23 @@ jobs:
           cache: gradle
 
       - name: Set up Android SDK
+        if: steps.validate.outputs.mode != 'bump'
         uses: android-actions/setup-android@v4
 
       - name: Accept Android SDK licenses
+        if: steps.validate.outputs.mode != 'bump'
         run: yes | sdkmanager --licenses >/dev/null || true
 
       - name: Test, lint, and assemble release
+        if: steps.validate.outputs.mode != 'bump'
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew testReleaseUnitTest lintRelease assembleRelease --no-daemon
 
-      - name: Commit and tag release
-        if: steps.validate.outputs.mode == 'normal'
-        env:
-          VERSION_NAME: ${{ steps.validate.outputs.version_name }}
-          VERSION_CODE: ${{ steps.validate.outputs.version_code }}
-        run: |
-          set -euo pipefail
-          if [[ ! "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Refusing to commit version_name '${VERSION_NAME}'." >&2
-            exit 1
-          fi
-          if [[ ! "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
-            echo "Refusing to commit version_code '${VERSION_CODE}'." >&2
-            exit 1
-          fi
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add version.properties
-          git commit -m "Release ${VERSION_NAME}" -m "versionCode ${VERSION_CODE}"
-          git push origin HEAD:main
-          git tag "v${VERSION_NAME}"
-          git push origin "v${VERSION_NAME}"
-
-      - name: Tag existing version
-        if: steps.validate.outputs.mode == 'publish'
+      - name: Tag release
+        if: steps.validate.outputs.mode == 'release'
         env:
           VERSION_NAME: ${{ steps.validate.outputs.version_name }}
         run: |
@@ -296,6 +252,7 @@ jobs:
           git push origin "v${VERSION_NAME}"
 
       - name: Publish GitHub Release
+        if: steps.validate.outputs.mode != 'bump'
         env:
           VERSION_NAME: ${{ steps.validate.outputs.version_name }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -305,10 +262,51 @@ jobs:
             echo "Refusing to publish version_name '${VERSION_NAME}'." >&2
             exit 1
           fi
+          sha=$(git rev-parse HEAD)
           cp app/build/outputs/apk/release/app-release.apk "aa-action-buttons-${VERSION_NAME}.apk"
           gh release create "v${VERSION_NAME}" \
             "aa-action-buttons-${VERSION_NAME}.apk" \
             --verify-tag \
-            --target main \
+            --target "$sha" \
             --title "v${VERSION_NAME}" \
             --generate-notes
+
+      - name: Bump version on main
+        env:
+          NEXT_NAME: ${{ steps.validate.outputs.next_name }}
+          NEXT_CODE: ${{ steps.validate.outputs.next_code }}
+        run: |
+          python3 - << 'PY'
+          import os
+          import re
+          import subprocess
+          import sys
+
+          next_name = os.environ["NEXT_NAME"].strip()
+          next_code = os.environ["NEXT_CODE"].strip()
+          if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", next_name):
+              print(f"Refusing to bump to versionName {next_name!r}.", file=sys.stderr)
+              sys.exit(1)
+          if not re.fullmatch(r"[0-9]+", next_code):
+              print(f"Refusing to bump to versionCode {next_code!r}.", file=sys.stderr)
+              sys.exit(1)
+
+          with open("version.properties", "w", encoding="utf-8") as fh:
+              fh.write("# versionName is the next release. The release workflow ships it, then raises the patch and versionCode by 1.\n")
+              fh.write("# For a minor or major release, edit both fields in a normal commit. versionCode must be higher than the last release.\n")
+              fh.write(f"versionCode={next_code}\n")
+              fh.write(f"versionName={next_name}\n")
+
+          def run(*args):
+              result = subprocess.run(args, check=False, capture_output=True, text=True)
+              if result.returncode != 0:
+                  print(result.stderr.strip() or result.stdout.strip() or f"{args[0]} failed.", file=sys.stderr)
+                  sys.exit(result.returncode)
+
+          run("git", "config", "--local", "user.name", "github-actions[bot]")
+          run("git", "config", "--local", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
+          run("git", "add", "version.properties")
+          run("git", "commit", "-m", f"Bump version to {next_name}", "-m", f"versionCode {next_code}")
+          run("git", "push", "origin", "HEAD:main")
+          print(f"Advanced main to {next_name} (versionCode {next_code}).")
+          PY

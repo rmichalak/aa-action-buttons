@@ -43,9 +43,10 @@ adb logcat -s AaActionButtons
 
 - Describe what you changed and how you tested (phone + Android Auto, and/or DHU).
 - Do not claim car-screen success from a desktop or CI build alone.
-- `version.properties` is the version source of truth (`versionCode` and `versionName`).
+- `version.properties` is the next release (`versionCode` and `versionName`). The Release workflow ships that version, then raises the patch and `versionCode` by 1. Change a minor or major version by hand, and raise `versionCode` in that same commit.
 - Checks (`.github/workflows/checks.yml`) runs on pull requests and pushes to `main`: unit tests, lint, and `assembleDebug`. The APK is not uploaded. Do not publish the debug APK as the default artifact.
-- The public download is the GitHub Release asset `aa-action-buttons-X.Y.Z.apk` from the manual Release workflow (`.github/workflows/release.yml`, `workflow_dispatch` on `main`). Inputs are `version_name` (`x.y.z`) and `version_code`. A new version must raise `versionCode` and change `versionName`; the workflow then writes `version.properties`, runs tests, lint, and `assembleRelease`, commits `Release x.y.z` to `main`, and tags `vX.Y.Z`. Passing the version already in `version.properties` tags that commit and publishes it without another commit.
+- The public download is the GitHub Release asset `aa-action-buttons-X.Y.Z.apk` from the manual Release workflow (`.github/workflows/release.yml`, `workflow_dispatch` on `main`, no inputs). It tags the version already on `main` and publishes it. It refuses when `versionCode` is not higher than the last released tag. After publish, it pushes the patch bump to `main`.
+- That push needs the `RELEASE_TOKEN` Actions secret: a fine-grained personal access token for this repository only, with Contents set to Read and write. The token owner must be able to bypass the `main` ruleset (repository admin). A personal account cannot add GitHub Actions itself to the bypass list, so the default `GITHUB_TOKEN` cannot push the version bump. Create the token at https://github.com/settings/personal-access-tokens/new and store it with `gh secret set RELEASE_TOKEN`. Do not commit the token.
 
 ## Reporting Android Auto quirks
 
