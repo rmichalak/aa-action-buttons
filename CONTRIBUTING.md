@@ -26,10 +26,11 @@ Wireless reconnect from the container: pair once with `adb pair` ([docs](https:/
 
 ```shell
 ./gradlew adbInstall
+./gradlew adbInstallDebug
 adb logcat -s AaActionButtons
 ```
 
-`adbInstall` installs the release APK on every connected device and reconnects `.adb-devices` first when that file exists. `scripts/adb-install.sh [apk]` installs an existing file without rebuilding.
+`adbInstall` installs the release APK on every connected device and reconnects `.adb-devices` first when that file exists. `adbInstallDebug` installs the debug APK the same way. `scripts/adb-install.sh [apk]` installs an existing file without rebuilding.
 
 ## Scope
 

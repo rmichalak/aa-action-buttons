@@ -62,7 +62,7 @@ adb uninstall dev.robertmichalak.carbuttons   # only if that older package is st
 ./gradlew adbInstall
 ```
 
-`adbInstall` builds the release APK, reconnects the endpoints in `.adb-devices` when that file exists, and runs `adb install -r` on every device in state `device`. With no `.adb-devices` file it still installs over USB. It does not replace `dev.robertmichalak.carbuttons`; that id is a different app. Pass another apk to the script directly, for example `scripts/adb-install.sh app/build/outputs/apk/debug/app-debug.apk`.
+`adbInstall` builds the release APK, reconnects the endpoints in `.adb-devices` when that file exists, and runs `adb install -r` on every device in state `device`. With no `.adb-devices` file it still installs over USB. `adbInstallDebug` does the same with the debug APK, which turns the caller allowlist off. It does not replace `dev.robertmichalak.carbuttons`; that id is a different app.
 
 ### Wireless adb from the container
 

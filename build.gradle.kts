@@ -16,3 +16,11 @@ tasks.register<Exec>("adbInstall") {
     dependsOn(":app:assembleRelease")
     commandLine("bash", "scripts/adb-install.sh")
 }
+
+tasks.register<Exec>("adbInstallDebug") {
+    group = "install"
+    description = "Build the debug APK, reconnect .adb-devices when present, and install on every connected adb device."
+    workingDir = rootDir
+    dependsOn(":app:assembleDebug")
+    commandLine("bash", "scripts/adb-install.sh", "app/build/outputs/apk/debug/app-debug.apk")
+}
