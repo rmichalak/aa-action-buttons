@@ -9,6 +9,8 @@ captures/
 .externalNativeBuild/
 .cxx/
 .kotlin/
+__pycache__/
+*.pyc
 *.apk
 *.ap_
 *.aab
