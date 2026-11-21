@@ -43,10 +43,12 @@ Docker Desktop on a Mac **does not** pass phone USB into the container, and you 
 ./gradlew assembleRelease
 ```
 
-Installable APK (non-debuggable, debug-signed, host allowlist enforced):  
+Installable APK (non-debuggable, host allowlist enforced):  
 `app/build/outputs/apk/release/app-release.apk`
 
-Debug and release APKs are signed with `signing/debug.keystore` (gitignored, debug password `android`). The first build creates it in the project directory. That directory is mounted from the host, so rebuilding the devcontainer keeps the same signature and a later `adb install -r` can update the app. If the file is missing, the next build makes a new key and Android rejects the update until you uninstall. A CI checkout creates its own keystore, so a GitHub artifact does not match this local key.
+Debug builds are signed with the gitignored `signing/debug.keystore` (password `android`, alias `androiddebugkey`). The first build creates it in the project directory. That directory is mounted from the host, so rebuilding the devcontainer keeps the same debug signature.
+
+`assembleRelease` requires the gitignored `signing/release.keystore` and `signing/keystore.properties` (`signing/keystore.properties.example` shows the shape). Without them the release build fails. That release key is the update key for public installs. GitHub Releases sign with the same key via Actions secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`, and the workflow stops if those secrets are missing. Forks use `assembleDebug`. Installing a release-signed APK over a debug-signed one requires one uninstall.
 
 For local DHU / Media Controller experiments that need any media-browser client:
 
@@ -74,7 +76,9 @@ cp .adb-devices.example .adb-devices
 
 `.adb-devices` is gitignored. The devcontainer runs the same connect when it starts (and continues if the phone is offline). The connect port changes when wireless debugging is toggled or the phone reboots; update the file when `adb devices` is empty. Rebuilding the container creates a new adb key, so pair once more after a rebuild.
 
-CI on `main` uploads the **release** APK artifact (`app-release`), not the open debug build.
+`version.properties` is the version source of truth (`versionCode` and `versionName`).
+
+Checks (`.github/workflows/checks.yml`) runs on pull requests and pushes to `main`: unit tests, lint, and `assembleDebug`. The APK is not uploaded. Release (`.github/workflows/release.yml`) is manual (`workflow_dispatch` from `main`). Inputs are `version_name` (`x.y.z`) and `version_code`. A new version must use a higher `versionCode` and a different `versionName`; the workflow writes `version.properties`, runs tests, lint, and `assembleRelease`, commits `Release x.y.z` to `main`, and tags `vX.Y.Z`. Passing the version already in `version.properties` tags that commit and publishes it without another commit. The GitHub Release asset is `aa-action-buttons-X.Y.Z.apk`, signed with the release key. That file is the public download. Do not publish the debug APK as the default artifact. A desktop or CI build does not prove Android Auto car-screen behavior.
 
 ## Android Auto developer mode
 

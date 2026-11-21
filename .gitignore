@@ -13,6 +13,8 @@ captures/
 *.ap_
 *.aab
 *.jks
-# Created on first build at signing/debug.keystore. Leave it untracked so rebuilds keep the same signature.
+# signing/debug.keystore is created on first build. signing/release.keystore and
+# signing/keystore.properties are the public update key. Leave all of them untracked.
 *.keystore
 *.keystore.properties
+signing/keystore.properties

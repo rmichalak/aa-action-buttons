@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="net.dinglisch.android.tasker.PERMISSION_RUN_TASKS" />
@@ -8,12 +9,14 @@
         <package android:name="net.dinglisch.android.taskerm" />
     </queries>
 
+    <!-- Button list, not a searchable media catalog. -->
     <application
         android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AaActionButtons">
+        android:theme="@style/Theme.AaActionButtons"
+        tools:ignore="MissingIntentFilterForMediaSearch">
 
         <meta-data
             android:name="com.google.android.gms.car.application"

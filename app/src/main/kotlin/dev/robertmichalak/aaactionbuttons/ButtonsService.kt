@@ -1,5 +1,6 @@
 package dev.robertmichalak.aaactionbuttons
 
+import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -335,9 +336,11 @@ class ButtonsService : MediaBrowserServiceCompat() {
     }
 
     private fun isAllowedCaller(packageName: String): Boolean {
-        if (BuildConfig.DEBUG) return true
-        if (packageName == applicationContext.packageName) return true
-        return packageName in ALLOWED_PACKAGES
+        return CallerAllowlist.allows(
+            callerPackage = packageName,
+            selfPackage = applicationContext.packageName,
+            debugBuild = BuildConfig.DEBUG,
+        )
     }
 
     /**
@@ -407,6 +410,8 @@ class ButtonsService : MediaBrowserServiceCompat() {
         )
     }
 
+    // Button list, not a searchable media catalog.
+    @SuppressLint("MissingOnPlayFromSearch")
     private inner class SessionCallback : MediaSessionCompat.Callback() {
         override fun onPlayFromMediaId(mediaId: String?, extras: Bundle?) {
             runButtonFromPlay(mediaId)
@@ -432,12 +437,5 @@ class ButtonsService : MediaBrowserServiceCompat() {
         private const val ACTION_RUN = "dev.robertmichalak.aaactionbuttons.action.RUN"
         private const val HINT_MEDIA_ID = "__hint_use_run__"
         const val ROOT_ID = "root"
-
-        private val ALLOWED_PACKAGES = setOf(
-            "com.google.android.projection.gearhead",
-            "com.google.android.autosimulator",
-            "com.android.car.media",
-            "com.google.android.car.media",
-        )
     }
 }

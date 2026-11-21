@@ -28,6 +28,8 @@ app/src/main/kotlin/dev/robertmichalak/aaactionbuttons/
   TaskerInvoker.kt       Tasker ACTION_TASK broadcast (TaskerIntent shape: id: URI, version 1.1)
   TaskerTasks.kt         Query named tasks for import UI
   ButtonStore.kt         SharedPreferences persistence + change broadcast
+  ButtonCodec.kt         button JSON codec
+  CallerAllowlist.kt     media-browser caller allowlist
   ButtonCatalog.kt       Defaults when no saved list (currently empty)
   ConfigActivity.kt      Phone CRUD / Tasker import / debug log
   AaDiagnostics.kt       Persists last onGetRoot host hints
@@ -35,6 +37,7 @@ app/src/main/kotlin/dev/robertmichalak/aaactionbuttons/
   model/Action.kt        Tasker | Http | IntentAction
   model/ButtonConfig.kt
 app/src/main/res/xml/automotive_app_desc.xml   uses name="media"
+version.properties       versionCode + versionName (source of truth)
 .devcontainer/           JDK 21 + Android SDK image for the host CPU; GitHub CLI via the github-cli feature. arm64 swaps in pinned AOSP build-tools (Commit451, 36.0.0) and Ubuntu adb, and skips DHU.
 ```
 
@@ -42,17 +45,19 @@ app/src/main/res/xml/automotive_app_desc.xml   uses name="media"
 
 ```shell
 ./gradlew assembleRelease
-# Installable: app/build/outputs/apk/release/app-release.apk (non-debuggable, debug-signed)
-# signing/debug.keystore is created on first build and gitignored. It lives in the workspace mount, so container rebuilds keep the signature. CI checkouts get a different key.
+# Installable: app/build/outputs/apk/release/app-release.apk (non-debuggable, host allowlist)
+# Release key: gitignored signing/release.keystore via signing/keystore.properties.
+# assembleRelease fails when that key is missing. Forks use assembleDebug.
+# Public releases use that same key (Actions: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD).
 ./gradlew assembleDebug
-# Local/DHU only: any media-browser caller allowed
+# Local/DHU only: any media-browser caller allowed. Signed with signing/debug.keystore.
 ```
 
 **Host vs container:** Android Studio / USB `adb` on the host. Devcontainer = Gradle + SDK only (no Studio). Docker Desktop on Mac cannot USB-passthrough the phone — wireless `adb` or host-side install.
 
 Wireless: pair once with `adb pair` ([docs](https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi)). Reconnect with `./gradlew adbConnect` (gitignored `.adb-devices`; example `.adb-devices.example`). Devcontainer runs `scripts/adb-connect.sh --if-configured` on start. `./gradlew adbInstall` builds the release APK, reconnects `.adb-devices` when that file exists, and installs on every device in state `device`.
 
-CI uploads **release** APK (`BuildConfig.DEBUG == false` → `onGetRoot` allowlist). Do not publish debug APK as the default artifact.
+`version.properties` is the version source of truth (`versionCode` and `versionName`). Checks (`.github/workflows/checks.yml`) runs on pull requests and pushes to main: unit tests, lint, and `assembleDebug`. The APK is not uploaded. Release (`.github/workflows/release.yml`) is manual `workflow_dispatch` from main. A new version must raise `versionCode` and change `versionName`; the workflow writes `version.properties`, runs those same tasks with the release key, commits `Release x.y.z`, tags `vX.Y.Z`, and publishes GitHub Release asset `aa-action-buttons-X.Y.Z.apk` (the public download). Passing the version already in `version.properties` tags that commit and publishes it without another commit. These two workflows replaced a single `android.yml`. Release builds keep the host allowlist (`BuildConfig.DEBUG == false`). Do not publish the debug APK as the default artifact. A desktop or CI build does not prove Android Auto car-screen behavior.
 
 ## Android Auto constraints (do not “fix” incorrectly)
 
