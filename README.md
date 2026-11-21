@@ -44,6 +44,8 @@ Docker Desktop on a Mac **does not** pass phone USB into the container, and you 
 Installable APK (non-debuggable, debug-signed, host allowlist enforced):  
 `app/build/outputs/apk/release/app-release.apk`
 
+Debug and release APKs are signed with `signing/debug.keystore` (gitignored, debug password `android`). The first build creates it in the project directory. That directory is mounted from the host, so rebuilding the devcontainer keeps the same signature and a later `adb install -r` can update the app. If the file is missing, the next build makes a new key and Android rejects the update until you uninstall. A CI checkout creates its own keystore, so a GitHub artifact does not match this local key.
+
 For local DHU / Media Controller experiments that need any media-browser client:
 
 ```shell

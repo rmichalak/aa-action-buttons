@@ -36,7 +36,7 @@ adb logcat -s AaActionButtons
 - The **default** product is the **media-browser** Android Auto path (Unknown sources).
 - Do **not** treat Play-installer spoofing / KingInstaller as a supported install method in docs or CI.
 - Car App Library / templated experiments are out of default scope unless a change explicitly targets that path.
-- Prefer small, focused diffs. Do not commit keystores (`*.jks` / `*.keystore`), secrets, or local SDK paths.
+- Prefer small, focused diffs. Do not commit keystores (`*.jks` / `*.keystore`), secrets, or local SDK paths. The local signing key is `signing/debug.keystore`, created on first build and left untracked so container rebuilds keep a stable signature.
 
 ## Pull requests
 

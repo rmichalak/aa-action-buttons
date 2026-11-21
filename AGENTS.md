@@ -43,6 +43,7 @@ app/src/main/res/xml/automotive_app_desc.xml   uses name="media"
 ```shell
 ./gradlew assembleRelease
 # Installable: app/build/outputs/apk/release/app-release.apk (non-debuggable, debug-signed)
+# signing/debug.keystore is created on first build and gitignored. It lives in the workspace mount, so container rebuilds keep the signature. CI checkouts get a different key.
 ./gradlew assembleDebug
 # Local/DHU only: any media-browser caller allowed
 ```

@@ -13,5 +13,6 @@ captures/
 *.ap_
 *.aab
 *.jks
+# Created on first build at signing/debug.keystore. Leave it untracked so rebuilds keep the same signature.
 *.keystore
 *.keystore.properties
