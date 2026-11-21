@@ -1,0 +1,7 @@
+# Copy this file to .adb-devices (gitignored).
+# Pair first: https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi
+# One wireless-debugging endpoint per line, from the phone screen
+# Developer options → Wireless debugging → IP address & port.
+# That port is the connect port, not the short-lived pairing port.
+#
+# 192.168.0.2:34567

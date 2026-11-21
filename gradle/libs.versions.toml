@@ -1,0 +1,11 @@
+[versions]
+agp = "9.4.1"
+media = "1.8.0"
+coroutines = "1.10.2"
+
+[libraries]
+androidx-media = { group = "androidx.media", name = "media", version.ref = "media" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }

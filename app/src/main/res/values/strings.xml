@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AA Action Buttons</string>
+    <string name="aa_button_running">%1$s (running…)</string>
+    <string name="aa_custom_action_run">Run</string>
+    <string name="aa_custom_action_started">Started…</string>
+    <string name="aa_custom_action_done">Done: %1$s</string>
+    <string name="aa_custom_action_failed">Failed</string>
+    <string name="aa_custom_action_busy">Already running</string>
+    <string name="aa_custom_action_missing_id">Missing button id</string>
+    <string name="aa_use_run_action_title">Use the Run action</string>
+    <string name="aa_use_run_action_subtitle">Go back and tap Run next to the button</string>
+    <string name="config_intro">Buttons appear as a media list in Android Auto (sideload / Unknown sources). Tap one on the car to run its action on the phone. Brief player Loading/Failed is normal.</string>
+    <string name="add_button">Add</string>
+    <string name="import_from_tasker">From Tasker</string>
+    <string name="fix_tasker_permission">Fix Tasker permission</string>
+    <string name="tasker_permission_title">Tasker run permission</string>
+    <string name="tasker_permission_help">If Android does not show a prompt, grant it from a computer with adb:\n\nadb shell pm grant %1$s net.dinglisch.android.tasker.PERMISSION_RUN_TASKS\n\nOr uninstall AA Action Buttons completely, then install the APK again (not update/-r).</string>
+    <string name="tasker_permission_granted">Tasker run permission is granted</string>
+    <string name="tasker_permission_denied">Permission still denied. Use the adb pm grant command.</string>
+    <string name="edit_button">Edit button</string>
+    <string name="save">Save</string>
+    <string name="delete">Del</string>
+    <string name="move_up">Up</string>
+    <string name="move_down">Down</string>
+    <string name="empty_buttons">No buttons yet. Add one or import from Tasker.</string>
+    <string name="max_buttons_reached">Maximum of 8 buttons.</string>
+    <string name="confirm_delete_title">Delete button?</string>
+    <string name="confirm_delete_message">Remove “%1$s” from the list?</string>
+    <string name="tasker_import_title">Import Tasker tasks</string>
+    <string name="tasker_import_add">Add selected</string>
+    <string name="tasker_none_found">No named Tasker tasks found.</string>
+    <string name="tasker_all_imported">All listed tasks are already buttons.</string>
+    <string name="tasker_ext_access_required">Enable Tasker → Prefs → Misc → Allow External Access, then try again.</string>
+    <string name="tasker_unavailable">Could not read Tasker tasks. Is Tasker installed?</string>
+    <string name="tasker_imported_count">Added %1$d Tasker button(s).</string>
+    <string name="tasker_slots_left">Only %1$d button slot(s) left; select fewer tasks.</string>
+    <string name="debug_log_title">Debug log</string>
+    <string name="debug_log_empty">No events yet. Tap a button from Android Auto, then Refresh.</string>
+    <string name="debug_refresh">Refresh</string>
+    <string name="debug_copy">Copy</string>
+    <string name="debug_clear">Clear</string>
+    <string name="debug_copied">Debug log copied</string>
+    <string name="validation_required">Label and primary field are required.</string>
+    <string name="hint_label">Button label</string>
+    <string name="hint_task_name">Tasker task name</string>
+    <string name="hint_url">URL</string>
+    <string name="hint_http_method">HTTP method (GET or POST)</string>
+    <string name="hint_intent_action">Intent action string</string>
+    <string name="hint_intent_package">Package (optional)</string>
+    <string name="hint_unused">Unused for this action type</string>
+    <string name="subtitle_tasker">Tasker task</string>
+    <string name="subtitle_http">HTTP %1$s</string>
+    <string name="subtitle_intent">Broadcast / intent</string>
+
+    <string-array name="action_types">
+        <item>Tasker task</item>
+        <item>HTTP request</item>
+        <item>Generic intent</item>
+    </string-array>
+</resources>
